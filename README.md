@@ -1,5 +1,7 @@
-# BNNSTGP
-Code repository of the paper Scalar-on-Image Neural Networks with the Soft-Thresholded Gaussian Process Prior
+# SV-NN
+Code repository of the paper:
+
+Ben Wu, Keru Wu, Jian Kang. Bayesian Scalar-on-Image Regression with a Spatially Varying Single-layer Neural Network Prior. Journal of Machine Learning Research. In Press.
 
 ## Requirements
 
