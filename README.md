@@ -1,7 +1,7 @@
 # SV-NN
 Code repository of the paper:
 
-Ben Wu, Keru Wu, Jian Kang. Bayesian Scalar-on-Image Regression with a Spatially Varying Single-layer Neural Network Prior. Journal of Machine Learning Research. In Press.
+Ben Wu, Keru Wu, Jian Kang. (2025). Bayesian Scalar-on-Image Regression with a Spatially Varying Single-layer Neural Network Prior. *Journal of Machine Learning Research*. In Press.
 
 ## Requirements
 
