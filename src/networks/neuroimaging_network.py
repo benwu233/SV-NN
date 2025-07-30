@@ -7,13 +7,14 @@ import copy
 from networks.baseBNN import BNNSTGP
 from optimizer.SGLD import SGLD
 
+
+
 class Net_continuous(object):
 
     def __init__(self, reg_init, lr=1e-3, input_dim=784, n_hid = 10, output_dim = 1, w_dim = 1, n_knots = 66,
-                 N_train=200, phi=None, lamb = 1, langevin = True, step_decay_epoch = 100, step_gamma = 0.1, act = 'relu',
-                 b_prior_sig=None):
-
-        # print(' Creating Net!! ')
+                 N_train=200, phi=None, lamb = 1, langevin = True, step_decay_epoch = 100, step_gamma = 0.1, act = 'relu'):
+        
+        #print(' Creating Net!! ')
         self.lr = lr
 
         self.input_dim = input_dim
@@ -25,7 +26,6 @@ class Net_continuous(object):
         self.lamb = lamb
         self.act = act
         self.reg_init = reg_init
-        self.b_prior_sig = torch.Tensor(b_prior_sig)
 
         self.N_train = N_train
         self.langevin = langevin
@@ -35,17 +35,17 @@ class Net_continuous(object):
         self.create_net()
         self.create_opt()
         self.epoch = 0
-
+        
         self.weight_set_samples = []
 
 
     def create_net(self):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = BNNSTGP(input_dim=self.input_dim, n_hid=self.n_hid, output_dim=self.output_dim,
+        self.model = BNNSTGP(input_dim=self.input_dim, n_hid=self.n_hid, output_dim=self.output_dim, 
                              w_dim=self.w_dim, n_knots = self.n_knots, phi=torch.tensor(self.phi).to(self.device),
-                             lamb = self.lamb, act = self.act, reg_init=self.reg_init, b_prior_sig=self.b_prior_sig)
+                             lamb = self.lamb, act = self.act, reg_init=self.reg_init)
         self.model.to(self.device)
-        # print('    Total params: %.2fK' % (self.get_nb_parameters() / 1000.0))
+        #print('    Total params: %.2fK' % (self.get_nb_parameters() / 1000.0))
 
 
     def create_opt(self):
@@ -62,49 +62,52 @@ class Net_continuous(object):
 
         out = self.model(x, w)
         loss = F.mse_loss(out, y, reduction='mean')
-        loss = loss * self.N_train
-
-
+        loss = loss * self.N_train 
+        #loss += self.model.log_prior()
+        
         loss.backward()
-        self.optimizer.step()
+        self.optimizer.step() 
 
+        #R2 = 1 - torch.sum((out-y)**2)/torch.sum((y-y.mean())**2)
 
-        return loss *x.shape[0 ] /self.N_train, out
+        return loss*x.shape[0]/self.N_train, out
 
-
+    
     def eval(self, x, w, y):
         x = x.to(self.device)
         w = w.to(self.device)
-
+        
         y = y.float().to(self.device).reshape(-1, 1)
 
         out = self.model(x, w)
-        loss = F.mse_loss(out, y, reduction='mean')
-        loss = loss * self.N_train
+        loss = F.mse_loss(out, y, reduction='mean') 
+        loss = loss * self.N_train 
+        #loss += self.model.log_prior()
 
+        #R2 = 1 - torch.sum((out-y)**2)/torch.sum((y-y.mean())**2)
 
-        return loss *x.shape[0 ] /self.N_train, out
-
+        return loss*x.shape[0]/self.N_train, out
+    
 
     def get_nb_parameters(self):
         return sum(p.numel() for p in self.model.parameters())
 
 
     def save_net_weights(self, max_samples):
-
+        
         if len(self.weight_set_samples) >= max_samples:
             self.weight_set_samples.pop(0)
-
+            
         self.weight_set_samples.append(copy.deepcopy(self.model.state_dict()))
+        #print(' saving weight samples %d/%d' % (len(self.weight_set_samples), max_samples) )
 
 
-
-    def all_sample_eval(self, x, w, y):
+    def all_sample_eval(self, x, w, y):    
         x = x.to(self.device)
         w = w.to(self.device)
-
+        
         pred = x.new(len(self.weight_set_samples), x.shape[0], self.output_dim)
-
+        
         for i, weight_dict in enumerate(self.weight_set_samples):
             self.model.load_state_dict(weight_dict)
             pred[i] = self.model(x, w)

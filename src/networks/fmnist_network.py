@@ -7,12 +7,10 @@ import copy
 from networks.baseBNN import BNNSTGP_two_layer
 from optimizer.SGLD import SGLD
 
-
 class Net(object):
 
     def __init__(self, task='binary', lr=1e-3, input_dim=784, n_hid = 128, n_hid2 = 64, output_dim = 1, w_dim = 1, n_knots = 66,
-                 N_train=200, phi=None, lamb = 1, langevin = True, step_decay_epoch = 100, step_gamma = 0.1, act = 'relu',
-                 b_prior_sig=None):
+                 N_train=200, phi=None, lamb = 1, langevin = True, step_decay_epoch = 100, step_gamma = 0.1, act = 'relu'):
 
         # print(' Creating Net!! ')
         self.task = task
@@ -34,7 +32,6 @@ class Net(object):
         self.langevin = langevin
         self.step_decay_epoch = step_decay_epoch
         self.step_gamma = step_gamma
-        self.b_prior_sig = torch.Tensor(b_prior_sig)
 
         self.create_net()
         self.create_opt()
@@ -47,7 +44,7 @@ class Net(object):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = BNNSTGP_two_layer(input_dim=self.input_dim, n_hid=self.n_hid, n_hid2=self.n_hid2, output_dim=self.output_dim,
                                        w_dim=self.w_dim, n_knots = self.n_knots, phi=torch.tensor(self.phi).to(self.device),
-                                       lamb = self.lamb, act = self.act, b_prior_sig=self.b_prior_sig)
+                                       lamb = self.lamb, act = self.act)
         self.model.to(self.device)
         # print('    Total params: %.2fK' % (self.get_nb_parameters() / 1000.0))
 
@@ -174,4 +171,5 @@ class Net(object):
         self.scheduler = state_dict['scheduler']
         print('  restoring epoch: %d, lr: %f' % (self.epoch, self.lr))
         return self.epoch
+
 

@@ -10,11 +10,10 @@ from optimizer.SGLD import SGLD
 
 class Net(object):
 
-    def __init__(self, task='binary', lr=1e-3, input_dim=784, n_hid=128, output_dim=1, w_dim=1, n_knots=66,
-                 N_train=200, phi=None, lamb=1, langevin=True, step_decay_epoch=100, step_gamma=0.1, act='relu',
-                 b_prior_sig=None):
-
-        # print(' Creating Net!! ')
+    def __init__(self, task='binary', lr=1e-3, input_dim=784, n_hid = 128, output_dim = 1, w_dim = 1, n_knots = 66,
+                 N_train=200, phi=None, lamb = 1, langevin = True, step_decay_epoch = 100, step_gamma = 0.1, act = 'relu'):
+        
+        #print(' Creating Net!! ')
         self.task = task
         if task not in ['binary', 'multiclass']:
             raise ValueError('Invalid task %s' % task)
@@ -28,7 +27,6 @@ class Net(object):
         self.phi = phi
         self.lamb = lamb
         self.act = act
-        self.b_prior_sig = torch.Tensor(b_prior_sig)
 
         self.N_train = N_train
         self.langevin = langevin
@@ -38,19 +36,22 @@ class Net(object):
         self.create_net()
         self.create_opt()
         self.epoch = 0
-
+        
         self.weight_set_samples = []
+
 
     def create_net(self):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = BNNSTGP_one_layer(input_dim=self.input_dim, n_hid=self.n_hid, output_dim=self.output_dim,
-                                       w_dim=self.w_dim, n_knots=self.n_knots, phi=torch.tensor(self.phi).to(self.device),
-                                       lamb=self.lamb, act=self.act, b_prior_sig=self.b_prior_sig)
+        self.model = BNNSTGP_one_layer(input_dim=self.input_dim, n_hid=self.n_hid, output_dim=self.output_dim, 
+                            w_dim=self.w_dim, n_knots = self.n_knots, phi=torch.tensor(self.phi).to(self.device),
+                            lamb = self.lamb, act = self.act)
         self.model.to(self.device)
 
+
     def create_opt(self):
-        self.optimizer = SGLD(params=self.model.parameters(), lr=self.lr, langevin=self.langevin)
-        self.scheduler = StepLR(self.optimizer, step_size=self.step_decay_epoch, gamma=self.step_gamma)
+        self.optimizer = SGLD(params=self.model.parameters(), lr=self.lr, langevin = self.langevin)
+        self.scheduler = StepLR(self.optimizer, step_size = self.step_decay_epoch, gamma=self.step_gamma)
+
 
     def fit(self, x, w, y, threshold=0.5):
         x = x.to(self.device)
@@ -62,87 +63,92 @@ class Net(object):
 
             out = self.model(x, w)
             loss = F.binary_cross_entropy_with_logits(out, y, reduction='mean')
-            loss = loss * self.N_train
-            # loss += self.model.log_prior()
-
+            loss = loss * self.N_train 
+            #loss += self.model.log_prior()
+            
             loss.backward()
-            self.optimizer.step()
+            self.optimizer.step() 
 
-            pred = (torch.sigmoid(out) > threshold).long()
+            pred = (torch.sigmoid(out)>threshold).long()
             accu = (pred == y.long()).sum().float()
 
-        else:  ## multiclass
+        else:                           ## multiclass
             y = y.long().to(self.device).reshape(-1)
             self.optimizer.zero_grad()
 
             out = self.model(x, w)
-            loss = F.cross_entropy(out, y, reduction='mean')
-            loss = loss * self.N_train
+            loss = F.cross_entropy(out, y, reduction = 'mean')
+            loss = loss * self.N_train 
             loss += self.model.log_prior()
-
+            
             loss.backward()
             self.optimizer.step()
 
             pred = out.max(dim=1, keepdim=False)[1]
             accu = (pred == y).sum()
 
-        return loss * x.shape[0] / self.N_train, accu
+        return loss*x.shape[0]/self.N_train, accu
 
+    
     def eval(self, x, w, y, threshold=0.5):
         x = x.to(self.device)
         w = w.to(self.device)
-
+        
         if self.task == 'binary':
             y = y.float().to(self.device).reshape(-1, 1)
 
             out = self.model(x, w)
-            loss = F.binary_cross_entropy_with_logits(out, y, reduction='mean')
-            loss = loss * self.N_train
+            loss = F.binary_cross_entropy_with_logits(out, y, reduction='mean') 
+            loss = loss * self.N_train 
             loss += self.model.log_prior()
 
-            pred = (torch.sigmoid(out) > threshold).float()
+            pred = (torch.sigmoid(out)>threshold).float() 
             accu = (pred == y).sum().float()
 
-        else:  ## multiclass
+        else:                        ## multiclass
             y = y.long().to(self.device).reshape(-1)
 
             out = self.model(x, w)
-            loss = F.cross_entropy(out, y, reduction='mean')
-            loss = loss * self.N_train
+            loss = F.cross_entropy(out, y, reduction = 'mean')
+            loss = loss * self.N_train 
             loss += self.model.log_prior()
 
             pred = out.max(dim=1, keepdim=False)[1]
             accu = (pred == y).sum()
 
-        return loss * x.shape[0] / self.N_train, accu
+        return loss*x.shape[0]/self.N_train, accu
+    
 
     def get_nb_parameters(self):
         return sum(p.numel() for p in self.model.parameters())
 
-    def save_net_weights(self, max_samples):
 
+    def save_net_weights(self, max_samples):
+        
         if len(self.weight_set_samples) >= max_samples:
             self.weight_set_samples.pop(0)
-
+            
         self.weight_set_samples.append(copy.deepcopy(self.model.state_dict()))
-        # print(' saving weight samples %d/%d' % (len(self.weight_set_samples), max_samples) )
+        #print(' saving weight samples %d/%d' % (len(self.weight_set_samples), max_samples) )
 
-    def all_sample_eval(self, x, w, y, threshold=0.5):
+
+    def all_sample_eval(self, x, w, y, threshold=0.5):    
         x = x.to(self.device)
         w = w.to(self.device)
         y = y.float().to(self.device)
-
+        
         pred = x.new(len(self.weight_set_samples), x.shape[0], self.output_dim)
-
+        
         for i, weight_dict in enumerate(self.weight_set_samples):
             self.model.load_state_dict(weight_dict)
             out_i = self.model(x, w)
             pred[i] = torch.sigmoid(out_i)
-
-        pred = (pred.mean(0) > threshold).float()
+            
+        pred = (pred.mean(0)>threshold).float()
         accu = (pred == y).sum().float()
 
         return accu
+
 
     def save(self, filename):
         print('Writting %s\n' % filename)
@@ -163,6 +169,3 @@ class Net(object):
         self.scheduler = state_dict['scheduler']
         print('  restoring epoch: %d, lr: %f' % (self.epoch, self.lr))
         return self.epoch
-
-
-
