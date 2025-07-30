@@ -18,8 +18,8 @@ class SGLD(Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
-                ##d_p = p.grad
-                d_p = p.grad.clamp(-2,2)
+                d_p = p.grad
+                ##d_p = p.grad.clamp(-2,2)
                 
                 if self.langevin == True:
                     langevin_noise = p.new(p.size()).normal_(mean=0, std=1)/np.sqrt(group['lr'])
