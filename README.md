@@ -22,16 +22,16 @@ python install_BayesGPfit.py
 ### MNIST: 
 The pair number follows the order of digit pairs in the paper, e.g.
 
-5 vs. 7, full data:
+4 vs. 7, full data:
 
 ```
-python MNIST_acc.py -pair 2 -all True
+python MNIST.py -pair 2 -all True
 ```
 
-5 vs. 7, n=10
+4 vs. 7, n=10
 
 ```
-python MNIST_acc.py -pair 2 -all False -size 10
+python MNIST.py -pair 2 -all False -size 10
 ```
 
 ### Fashion MNIST: 
@@ -40,14 +40,6 @@ python MNIST_acc.py -pair 2 -all False -size 10
 python FashionMNIST_acc.py -pair 2
 python FashionMNIST_acc.py -pair 2 -all False -size 10
 ```
-
-### Neuroimaging
-
-```
-python neuroimaging_acc.py -img 2bk-0bk -split random
-python neuroimaging_acc.py -img 2bk-baseline -split single
-```
-
 
 
 
